@@ -30,7 +30,7 @@
           <i class="fas fa-book-reader text-3xl text-white"></i>
         </div>
         <h1 class="text-2xl font-bold text-white tracking-wide">AI 单词伴学</h1>
-        <p class="text-white/60 text-sm mt-2">极致体验，高效抗遗忘</p>
+        <p class="text-white/60 text-sm mt-2">每天背一点，记得牢一点</p>
       </div>
 
       <!-- Mode Switcher -->
