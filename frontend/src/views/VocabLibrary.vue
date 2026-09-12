@@ -116,7 +116,7 @@
             <h3 class="font-black text-xl text-slate-800 mb-2 truncate drop-shadow-sm pr-6" :title="book.name">{{ book.name }}</h3>
             <p class="text-sm text-slate-600 mb-6 font-medium leading-relaxed">用户自定义导入词书。</p>
             <div class="flex justify-between items-center text-xs text-slate-500 font-bold">
-              <span>共 {{ book.words.length }} 词</span>
+              <span>共 {{ book.words ? book.words.length : book.wordCount }} 词</span>
               <span class="bg-slate-800/10 backdrop-blur-md px-3 py-1 rounded-lg">{{ new Date(book.importedAt).toLocaleDateString() }}</span>
             </div>
           </div>
@@ -139,14 +139,37 @@ const builtinCount = ref(VOCABULARY_DATA.length)
 const importedBooks = ref([])
 const currentBookId = ref(localStorage.getItem('current_book_id') || 'builtin')
 
+// 登录用户词书存数据库(多端同步), 游客存 localStorage
+const currentUser = ref(JSON.parse(localStorage.getItem('current_user') || 'null'))
+const isCloud = computed(() => !!currentUser.value)
+
 // Background Image Logic
 const defaultBg = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=2073&auto=format&fit=crop'
 const backgroundImage = ref(localStorage.getItem('custom_bg') || defaultBg)
 
-const loadImportedBooks = () => {
-  const books = localStorage.getItem('imported_vocab_books')
-  if (books) {
-    importedBooks.value = JSON.parse(books)
+const loadImportedBooks = async () => {
+  if (isCloud.value) {
+    try {
+      const res = await fetch('/api/books')
+      if (res.ok) {
+        const list = await res.json()
+        importedBooks.value = list.map(b => ({
+          id: b.id,
+          name: b.name,
+          isPinned: !!b.isPinned,
+          importedAt: b.createdAt ? Date.parse(b.createdAt) : Date.now(),
+          wordCount: b.wordCount || 0,
+          words: null // 云端词书单词明细按需从 /api/books/{id} 加载
+        }))
+        return
+      }
+    } catch (err) {
+      console.error('Failed to load cloud books:', err)
+    }
+    importedBooks.value = []
+  } else {
+    const books = localStorage.getItem('imported_vocab_books')
+    importedBooks.value = books ? JSON.parse(books) : []
   }
 }
 
@@ -186,8 +209,26 @@ onUnmounted(() => {
   document.removeEventListener('click', closeMenu)
 })
 
-const deleteBook = (id) => {
+const deleteBook = async (id) => {
   if (confirm('确定要删除这本词书吗？您的学习进度可能会受到影响。')) {
+    if (isCloud.value) {
+      try {
+        const res = await fetch(`/api/books/${id}`, { method: 'DELETE' })
+        if (res.ok) {
+          if (currentBookId.value === id) {
+            selectBook('builtin')
+          } else {
+            await loadImportedBooks()
+          }
+        } else {
+          alert('删除失败')
+        }
+      } catch (err) {
+        console.error(err)
+        alert('删除失败, 请检查后端服务')
+      }
+      return
+    }
     importedBooks.value = importedBooks.value.filter(b => b.id !== id)
     localStorage.setItem('imported_vocab_books', JSON.stringify(importedBooks.value))
     if (currentBookId.value === id) {
@@ -196,19 +237,53 @@ const deleteBook = (id) => {
   }
 }
 
-const renameBook = (id) => {
+const renameBook = async (id) => {
   const book = importedBooks.value.find(b => b.id === id)
   if (!book) return
   const newName = prompt('请输入新的词书名称：', book.name)
   if (newName && newName.trim()) {
+    if (isCloud.value) {
+      try {
+        const res = await fetch(`/api/books/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newName.trim() })
+        })
+        if (res.ok) {
+          await loadImportedBooks()
+        } else {
+          const data = await res.json().catch(() => ({}))
+          alert(data.message || '重命名失败')
+        }
+      } catch (err) {
+        console.error(err)
+        alert('重命名失败, 请检查后端服务')
+      }
+      return
+    }
     book.name = newName.trim()
     localStorage.setItem('imported_vocab_books', JSON.stringify(importedBooks.value))
   }
 }
 
-const togglePin = (id) => {
+const togglePin = async (id) => {
   const book = importedBooks.value.find(b => b.id === id)
   if (!book) return
+  if (isCloud.value) {
+    try {
+      const res = await fetch(`/api/books/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPinned: !book.isPinned })
+      })
+      if (res.ok) {
+        await loadImportedBooks()
+      }
+    } catch (err) {
+      console.error(err)
+    }
+    return
+  }
   book.isPinned = !book.isPinned
   localStorage.setItem('imported_vocab_books', JSON.stringify(importedBooks.value))
 }
@@ -218,7 +293,7 @@ const handleFileUpload = async (event) => {
   if (!file) return
 
   const reader = new FileReader()
-  reader.onload = (e) => {
+  reader.onload = async (e) => {
     try {
       const data = new Uint8Array(e.target.result)
       const workbook = XLSX.read(data, { type: 'array' })
@@ -278,6 +353,33 @@ const handleFileUpload = async (event) => {
       }
 
       if (parsedWords.length > 0) {
+        if (isCloud.value) {
+          // 登录用户: 词书存入数据库
+          try {
+            const res = await fetch('/api/books', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                name: file.name.replace(/\.[^/.]+$/, ""),
+                words: parsedWords
+              })
+            })
+            if (res.ok) {
+              const data = await res.json()
+              alert(`成功导入 ${data.wordCount ?? parsedWords.length} 个单词（已保存到云端）！`)
+              await loadImportedBooks()
+              selectBook(data.id)
+            } else {
+              const errData = await res.json().catch(() => ({}))
+              alert(errData.message || '保存词书失败')
+            }
+          } catch (err) {
+            console.error(err)
+            alert('保存词书失败，请检查后端服务。')
+          }
+          event.target.value = ''
+          return
+        }
         const newBook = {
           id: 'book_' + Date.now(),
           name: file.name.replace(/\.[^/.]+$/, ""),

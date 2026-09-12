@@ -15,6 +15,10 @@ public class Word {
     private String phonetic;
     private String unit;
 
+    /** 所属词书 ID (词书入库后由 BookController 维护) */
+    @Column(name = "book_id")
+    private Long bookId;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -33,6 +37,9 @@ public class Word {
 
     public String getUnit() { return unit; }
     public void setUnit(String unit) { this.unit = unit; }
+
+    public Long getBookId() { return bookId; }
+    public void setBookId(Long bookId) { this.bookId = bookId; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

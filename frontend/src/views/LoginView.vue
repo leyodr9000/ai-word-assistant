@@ -97,12 +97,17 @@
       </div>
 
       <!-- Guest Login -->
-      <button 
-        @click="handleGuestLogin" 
+      <button
+        @click="handleGuestLogin"
         class="w-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white/90 font-medium py-3 rounded-xl transition-all flex items-center justify-center gap-2 group active:scale-95 shadow-sm"
       >
         <i class="fas fa-user-secret group-hover:text-amber-400 transition-colors"></i> 游客免登录体验
       </button>
+
+      <p class="text-center text-white/40 text-xs mt-4 leading-relaxed">
+        系统内置管理员账号 <span class="text-white/70 font-bold">admin / admin123</span><br>
+        登录后可在右上角 ⚙ 设置中修改密码
+      </p>
 
     </div>
   </div>
@@ -147,7 +152,7 @@ const handleSubmit = async () => {
   isLoading.value = true
   try {
     const endpoint = isLogin.value ? '/api/auth/login' : '/api/auth/register'
-    const res = await fetch(`http://localhost:8081${endpoint}`, {
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form)

@@ -4,7 +4,6 @@ import com.example.wordassistant.entity.SystemConfig;
 import com.example.wordassistant.repository.SystemConfigRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -22,17 +21,32 @@ import java.util.concurrent.Executors;
 @RequestMapping("/api/chat")
 public class ChatController {
 
-    private final ExecutorService executor = Executors.newCachedThreadPool();
+    // 复用同一个 HttpClient 与有界线程池, 避免每请求新建/线程无限增长
+    private static final HttpClient CLIENT = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
+    private static final int MAX_MESSAGE_LENGTH = 2000;
 
-    @Autowired
-    private SystemConfigRepository configRepo;
+    private final ExecutorService executor = Executors.newFixedThreadPool(16);
+    private final SystemConfigRepository configRepo;
+    private final ObjectMapper objectMapper;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    public ChatController(SystemConfigRepository configRepo, ObjectMapper objectMapper) {
+        this.configRepo = configRepo;
+        this.objectMapper = objectMapper;
+    }
 
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamChat(@RequestBody Map<String, String> request) {
         String message = request.getOrDefault("message", "");
+        SseEmitter emitter = new SseEmitter(120000L);
+        // 客户端断开/超时时清理, 防止连接悬挂
+        emitter.onTimeout(emitter::complete);
+        emitter.onError(t -> { /* 连接已断, 无需处理 */ });
+
+        if (message.length() > MAX_MESSAGE_LENGTH) {
+            return fail(emitter, "消息过长, 请控制在 " + MAX_MESSAGE_LENGTH + " 字以内。");
+        }
 
         SystemConfig config = configRepo.findById(1L).orElse(new SystemConfig());
         String baseUrl = config.getBaseUrl();
@@ -40,17 +54,13 @@ public class ChatController {
         String modelName = config.getModelName() != null && !config.getModelName().isEmpty() ? config.getModelName() : "deepseek-chat";
         Double temperature = config.getTemperature() != null ? config.getTemperature() : 0.7;
 
-        SseEmitter emitter = new SseEmitter(120000L);
-
         executor.execute(() -> {
             try {
                 if (baseUrl == null || baseUrl.isEmpty()) {
-                    emitter.send(SseEmitter.event().data(objectMapper.writeValueAsString("请先在后台配置模型 API 地址。")));
-                    emitter.send(SseEmitter.event().name("done").data("[DONE]"));
-                    emitter.complete();
+                    fail(emitter, "请先在后台配置模型 API 地址。");
                     return;
                 }
-                
+
                 String endpoint = baseUrl;
                 if (!endpoint.endsWith("/chat/completions")) {
                     endpoint = endpoint.endsWith("/") ? endpoint + "chat/completions" : endpoint + "/chat/completions";
@@ -70,29 +80,21 @@ public class ChatController {
 
                 String jsonBody = objectMapper.writeValueAsString(requestBody);
 
-                HttpClient client = HttpClient.newBuilder()
-                        .connectTimeout(Duration.ofSeconds(10))
-                        .build();
-
                 HttpRequest httpRequest = HttpRequest.newBuilder()
                         .uri(URI.create(endpoint))
+                        .timeout(Duration.ofSeconds(110))
                         .header("Content-Type", "application/json")
                         .header("Authorization", "Bearer " + (apiKey != null ? apiKey : ""))
                         .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                         .build();
 
-                client.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofLines())
+                CLIENT.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofLines())
                         .thenAccept(response -> {
                             if (response.statusCode() != 200) {
-                                try {
-                                    String errorMsg = " API 请求失败 (HTTP " + response.statusCode() + ")";
-                                    emitter.send(SseEmitter.event().data(objectMapper.writeValueAsString(errorMsg)));
-                                    emitter.send(SseEmitter.event().name("done").data("[DONE]"));
-                                    emitter.complete();
-                                } catch (Exception e) {}
+                                fail(emitter, "API 请求失败 (HTTP " + response.statusCode() + ")");
                                 return;
                             }
-                            
+
                             response.body().forEach(line -> {
                                 if (line.startsWith("data: ") && !line.equals("data: [DONE]")) {
                                     String data = line.substring(6);
@@ -104,7 +106,7 @@ public class ChatController {
                                             emitter.send(SseEmitter.event().data(objectMapper.writeValueAsString(content)));
                                         }
                                     } catch (Exception e) {
-                                        // Ignore parse errors for broken lines
+                                        // 忽略解析失败的行
                                     }
                                 }
                             });
@@ -116,21 +118,28 @@ public class ChatController {
                             }
                         })
                         .exceptionally(ex -> {
-                            try {
-                                emitter.send(SseEmitter.event().data(objectMapper.writeValueAsString("网络异常：" + ex.getMessage())));
-                                emitter.send(SseEmitter.event().name("done").data("[DONE]"));
-                                emitter.completeWithError(ex);
-                            } catch (Exception e) {
-                            }
+                            fail(emitter, "网络异常：" + ex.getMessage());
                             return null;
                         });
             } catch (Exception e) {
                 try {
                     emitter.completeWithError(e);
-                } catch (Exception ex) {}
+                } catch (Exception ex) {
+                    // ignore
+                }
             }
         });
 
+        return emitter;
+    }
+
+    private SseEmitter fail(SseEmitter emitter, String message) {
+        try {
+            emitter.send(SseEmitter.event().data(objectMapper.writeValueAsString(message)));
+            emitter.send(SseEmitter.event().name("done").data("[DONE]"));
+            emitter.complete();
+        } catch (Exception ignored) {
+        }
         return emitter;
     }
 }

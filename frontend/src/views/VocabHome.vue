@@ -41,7 +41,13 @@
                 <i class="fas fa-spinner fa-spin text-blue-500"></i> <span class="text-blue-500 tracking-wider">正在同步学习进度...</span>
               </template>
               <template v-else>
-                <i class="fas fa-clock text-blue-500"></i> 今日学习: <span class="font-bold text-slate-800 dark:text-slate-100">{{ formattedStudyTime }}</span>
+                <i
+                  :class="isStudyActive ? 'fas fa-clock text-blue-500' : 'fas fa-pause-circle text-slate-400'"
+                  class="cursor-help"
+                  :title="isStudyActive ? '计时中: 2 分钟无操作或切离页面会自动暂停' : '已暂停: 页面不在前台或长时间无操作, 恢复操作后继续计时'"
+                ></i>
+                今日学习:
+                <span class="font-bold text-slate-800 dark:text-slate-100 cursor-help" :title="`累计学习 ${formattedTotalTime}`">{{ formattedStudyTime }}</span>
               </template>
             </p>
           </div>
@@ -141,6 +147,13 @@
           <button @click="hideMasteredDefinitions = !hideMasteredDefinitions" :class="['px-3 py-2 rounded-xl text-sm font-bold transition-all border active:scale-95 shadow-sm backdrop-blur-md', hideMasteredDefinitions ? 'bg-emerald-600/90 text-white border-emerald-500' : 'bg-emerald-50/50 text-emerald-700 border-emerald-200/50 hover:bg-emerald-100/60']" title="仅隐藏已标熟练的释义">
             <i :class="hideMasteredDefinitions ? 'fas fa-eye-slash' : 'fas fa-eye'" class="mr-1"></i> 熟隐
           </button>
+          <button @click="hideMasteredWords = !hideMasteredWords" :class="['px-3 py-2 rounded-xl text-sm font-bold transition-all border active:scale-95 shadow-sm backdrop-blur-md', hideMasteredWords ? 'bg-orange-500/90 text-white border-orange-500' : 'bg-orange-50/50 text-orange-700 border-orange-200/50 hover:bg-orange-100/60']" title="整体隐藏已标熟的单词 (作用范围见右侧下拉)">
+            <i :class="hideMasteredWords ? 'fas fa-filter' : 'fas fa-filter-circle-xmark'" class="mr-1"></i> 隐熟词
+          </button>
+          <select v-model="hideMasteredScope" :disabled="!hideMasteredWords" title="选择隐藏熟词的作用范围" class="px-2 py-2 rounded-xl text-xs font-bold border transition-all bg-white/50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 border-white/50 dark:border-slate-600/40 disabled:opacity-40 outline-none cursor-pointer">
+            <option value="list">列表</option>
+            <option value="both">列表+卡片</option>
+          </select>
         </div>
 
         <!-- Shuffle / Restore -->
@@ -177,7 +190,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="word in filteredWords" :key="word.word" class="border-b border-slate-200 dark:border-slate-700/50/40 dark:border-slate-700/40 hover:bg-white/60 dark:hover:bg-slate-700/50 transition-colors group">
+              <tr v-for="word in listWords" :key="word.word" class="border-b border-slate-200 dark:border-slate-700/50/40 dark:border-slate-700/40 hover:bg-white/60 dark:hover:bg-slate-700/50 transition-colors group">
                 <td class="py-3 px-6 w-1/3">
                   <div class="flex items-center gap-3">
                     <button @click="speak(word.word)" class="w-8 h-8 rounded-full bg-blue-100/80 text-blue-600 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all transform active:scale-90 group-hover:shadow-md shrink-0 border border-blue-200">
@@ -204,7 +217,10 @@
                   </div>
                 </td>
               </tr>
-              <tr v-if="filteredWords.length === 0">
+              <tr v-if="hideMasteredWords && hiddenMasteredCount > 0">
+                <td colspan="3" class="text-center py-2 text-xs text-orange-500/90 bg-orange-50/30 dark:bg-orange-900/10 font-bold">已隐藏 {{ hiddenMasteredCount }} 个已标熟的单词</td>
+              </tr>
+              <tr v-if="listWords.length === 0">
                 <td colspan="3" class="text-center py-10 text-slate-500 dark:text-slate-400 dark:text-slate-500 font-bold">没有找到匹配的单词</td>
               </tr>
             </tbody>
@@ -213,9 +229,9 @@
         
         <!-- Card View -->
         <div v-else class="flex-1 flex flex-col items-center justify-center p-4 md:p-8 relative">
-          <div v-if="filteredWords.length > 0" class="w-full max-w-lg relative h-full max-h-[500px] flex flex-col">
+          <div v-if="activeWords.length > 0" class="w-full max-w-lg relative h-full max-h-[500px] flex flex-col">
             <div class="text-center text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-4 font-bold tracking-widest text-sm shrink-0 bg-white/40 dark:bg-slate-800/40 inline-block px-4 py-1 rounded-full mx-auto backdrop-blur-md shadow-sm">
-              {{ currentIndex + 1 }} / {{ filteredWords.length }}
+              {{ currentIndex + 1 }} / {{ activeWords.length }}
             </div>
             
             <!-- Prev/Next Navigation outside the card -->
@@ -272,15 +288,20 @@
     </main>
 
     <!-- Right: AI Assistant Sidebar -->
-    <aside class="w-64 lg:w-72 flex flex-col shrink-0 overflow-hidden relative z-10 bg-white/50 dark:bg-slate-800/50 backdrop-blur-xl border border-white/40 dark:border-slate-600/30 rounded-3xl shadow-xl">
+    <aside v-if="showAiPanel" class="w-64 lg:w-72 flex flex-col shrink-0 overflow-hidden relative z-10 bg-white/50 dark:bg-slate-800/50 backdrop-blur-xl border border-white/40 dark:border-slate-600/30 rounded-3xl shadow-xl">
       <!-- AI Header -->
       <header class="p-4 border-b border-white/40 dark:border-slate-600/30 shrink-0 z-10 bg-gradient-to-r from-blue-100/50 to-indigo-100/50 backdrop-blur-md">
-        <h2 class="text-base font-black flex items-center gap-2 text-slate-800 dark:text-slate-100">
-          <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-md">
-            <i class="fas fa-robot text-xs"></i>
-          </div>
-          AI 智能伴学
-        </h2>
+        <div class="flex items-start justify-between">
+          <h2 class="text-base font-black flex items-center gap-2 text-slate-800 dark:text-slate-100">
+            <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-md">
+              <i class="fas fa-robot text-xs"></i>
+            </div>
+            AI 智能伴学
+          </h2>
+          <button @click="showAiPanel = false" class="w-7 h-7 rounded-lg bg-white/60 dark:bg-slate-800/60 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-300 flex items-center justify-center transition-all active:scale-90" title="收起 AI 助手">
+            <i class="fas fa-chevron-right text-xs"></i>
+          </button>
+        </div>
         <p class="text-[11px] text-slate-600 dark:text-slate-300 mt-1 ml-10 font-medium">查词缀 / 造句 / 联想记忆</p>
       </header>
 
@@ -316,7 +337,12 @@
         </div>
       </div>
     </aside>
-    
+
+    <!-- 展开收起的 AI 助手 (悬浮按钮) -->
+    <button v-if="!showAiPanel" @click="showAiPanel = true" class="absolute top-1/2 right-3 -translate-y-1/2 z-40 w-12 h-12 rounded-full bg-blue-600/90 hover:bg-blue-500 text-white shadow-xl flex items-center justify-center transition-all active:scale-90 backdrop-blur-md border border-blue-400/50" title="展开 AI 助手">
+      <i class="fas fa-robot"></i>
+    </button>
+
     <!-- Settings Modal -->
     <div v-if="showSettings" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm transition-all" @click.self="showSettings = false">
       <div class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-2xl p-6 rounded-3xl w-full max-w-sm shadow-2xl border border-white/50 dark:border-slate-600/40 animate-fade-in-down">
@@ -359,6 +385,22 @@
               <input type="checkbox" v-model="isNightMode" @change="saveSettings" class="sr-only peer">
               <div class="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600 dark:peer-checked:bg-indigo-500"></div>
             </label>
+          </div>
+
+          <!-- 修改密码 -->
+          <div class="p-3 bg-slate-50/50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-700/50">
+            <div class="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2 mb-2">
+              <i class="fas fa-key text-amber-500"></i> 修改密码
+            </div>
+            <template v-if="currentUser">
+              <input v-model="pwdForm.oldPassword" type="password" placeholder="当前密码" class="w-full mb-2 bg-white/70 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 px-3 py-2 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none transition-all text-sm">
+              <input v-model="pwdForm.newPassword" type="password" placeholder="新密码 (至少 6 位)" class="w-full mb-2 bg-white/70 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 px-3 py-2 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none transition-all text-sm">
+              <input v-model="pwdForm.confirmPassword" type="password" placeholder="确认新密码" class="w-full mb-2 bg-white/70 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 px-3 py-2 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none transition-all text-sm">
+              <button @click="changePassword" :disabled="isChangingPwd" class="w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold transition-all active:scale-95 disabled:opacity-50">
+                {{ isChangingPwd ? '提交中...' : '确认修改' }}
+              </button>
+            </template>
+            <p v-else class="text-xs text-slate-400">游客模式没有账号,注册登录后即可修改密码</p>
           </div>
         </div>
       </div>
@@ -425,6 +467,8 @@ watch(isNightMode, (newVal) => {
 
 const handleLogout = () => {
   if (confirm('确定要退出登录吗？退出后将返回登录界面。')) {
+    // 通知后端销毁会话(失败不影响本地退出)
+    fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
     localStorage.removeItem('current_user')
     router.push('/')
   }
@@ -445,34 +489,246 @@ const currentProverb = ref(proverbs[0])
 const hideAllDefinitions = ref(false)
 const hideMasteredDefinitions = ref(false)
 
+// 隐藏已标熟单词: 默认开启, 默认只作用于列表模式 (下拉可扩展到卡片模式)
+const hideMasteredWords = ref(localStorage.getItem('hide_mastered_words') !== 'false')
+const hideMasteredScope = ref(localStorage.getItem('hide_mastered_scope') || 'list')
+watch(hideMasteredWords, v => localStorage.setItem('hide_mastered_words', String(v)))
+watch(hideMasteredScope, v => localStorage.setItem('hide_mastered_scope', v))
+
+// AI 侧栏显示/收起 (记忆用户偏好)
+const showAiPanel = ref(localStorage.getItem('ai_panel_visible') !== 'false')
+watch(showAiPanel, v => localStorage.setItem('ai_panel_visible', String(v)))
+
+// --- 修改密码 ---
+const pwdForm = reactive({ oldPassword: '', newPassword: '', confirmPassword: '' })
+const isChangingPwd = ref(false)
+const changePassword = async () => {
+  if (!pwdForm.oldPassword || !pwdForm.newPassword) {
+    alert('请填写当前密码和新密码')
+    return
+  }
+  if (pwdForm.newPassword.length < 6) {
+    alert('新密码至少 6 位')
+    return
+  }
+  if (pwdForm.newPassword !== pwdForm.confirmPassword) {
+    alert('两次输入的新密码不一致')
+    return
+  }
+  isChangingPwd.value = true
+  try {
+    const res = await fetch('/api/auth/password', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(pwdForm)
+    })
+    const data = await res.json()
+    if (res.ok) {
+      alert('密码修改成功')
+      pwdForm.oldPassword = pwdForm.newPassword = pwdForm.confirmPassword = ''
+    } else {
+      alert(data.message || '修改失败')
+    }
+  } catch (err) {
+    console.error(err)
+    alert('请求失败, 请检查后端服务')
+  } finally {
+    isChangingPwd.value = false
+  }
+}
+
 // Background Image Logic (Shared with Login)
 const defaultBg = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=2073&auto=format&fit=crop'
 const backgroundImage = ref(localStorage.getItem('custom_bg') || defaultBg)
 
-// --- Study Time Tracker ---
-const studySeconds = ref(parseInt(localStorage.getItem('study_seconds') || '0'))
-let timerInterval = null
+// --- 学习时长统计 v2: 只计有效学习时间, 按天分桶, 跟随账号, 登录用户同步云端 ---
+const IDLE_MS = 2 * 60 * 1000       // 超过 2 分钟无操作视为挂机, 暂停计时
+const SYNC_MS = 60 * 1000           // 云端同步周期
+const ACTIVITY_EVENTS = ['pointerdown', 'keydown', 'wheel', 'touchstart', 'scroll']
+
+const isStudyActive = ref(true)     // 是否正在计时 (顶栏图标提示)
+let studyTimer = null
+let runningSince = Date.now()       // 本段连续计时的起点
+let lastActiveTs = Date.now()       // 最近一次交互时间
+let lastSyncTs = 0
+let isLeaderTab = true              // 多标签页抢锁, 只有主标签页计时
+const myTabId = Math.random().toString(36).slice(2)
+let syncedSecondsMap = {}           // 每个日期已同步到云端的秒数
+let cloudTotalSeconds = 0           // 云端历史累计 (登录用户)
+
+const dateStrOf = (d = new Date()) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+const userStorageKey = () => 'study_time_v2::' + (currentUser.value ? 'u' + currentUser.value.id : 'guest')
+const studyData = ref({ days: {}, legacy: 0 })
+
+const loadStudyData = () => {
+  let data = null
+  try {
+    const raw = localStorage.getItem(userStorageKey())
+    if (raw) data = JSON.parse(raw)
+  } catch (e) { /* ignore */ }
+  if (!data || typeof data !== 'object') data = {}
+  if (!data.days || typeof data.days !== 'object') data.days = {}
+  if (typeof data.legacy !== 'number') data.legacy = 0
+  // 迁移旧版全局累计 study_seconds (只迁移一次, 迁移后移除旧键)
+  const legacyOld = parseInt(localStorage.getItem('study_seconds') || '0')
+  if (legacyOld > 0 && data.legacy === 0) {
+    data.legacy = legacyOld
+    localStorage.removeItem('study_seconds')
+  }
+  studyData.value = data
+  saveStudyData()
+}
+
+const saveStudyData = () => {
+  try { localStorage.setItem(userStorageKey(), JSON.stringify(studyData.value)) } catch (e) { /* 存储异常时忽略 */ }
+}
+
+const todaySeconds = computed(() => studyData.value.days[dateStrOf()] || 0)
+const localTotalSeconds = computed(() => {
+  let sum = studyData.value.legacy || 0
+  for (const k in studyData.value.days) sum += studyData.value.days[k]
+  return sum
+})
+const totalSeconds = computed(() => {
+  if (currentUser.value) {
+    // 云端历史累计 + 本地尚未同步的今日部分
+    const unsynced = Math.max(0, todaySeconds.value - (syncedSecondsMap[dateStrOf()] || 0))
+    return cloudTotalSeconds + unsynced
+  }
+  return localTotalSeconds.value
+})
 
 const formattedStudyTime = computed(() => {
-  const m = Math.floor(studySeconds.value / 60)
-  const s = studySeconds.value % 60
-  return `${m} 分 ${s} 秒`
+  const s = todaySeconds.value
+  if (s < 60) return `${s} 秒`
+  return `${Math.floor(s / 60)} 分 ${s % 60} 秒`
 })
+
+const formattedTotalTime = computed(() => {
+  const s = totalSeconds.value
+  if (s < 60) return `${s} 秒`
+  if (s < 3600) return `${Math.floor(s / 60)} 分钟`
+  return `${Math.floor(s / 3600)} 小时 ${Math.floor((s % 3600) / 60)} 分`
+})
+
+const markStudyActive = () => { lastActiveTs = Date.now() }
+
+// 多标签页: localStorage 心跳锁, 过期即可抢占, 保证同一账号同时只有一个标签页计时
+const acquireLeaderIfNeeded = () => {
+  const lockKey = 'study_lock::' + (currentUser.value ? 'u' + currentUser.value.id : 'guest')
+  const now = Date.now()
+  let lock = null
+  try { lock = JSON.parse(localStorage.getItem(lockKey) || 'null') } catch (e) { /* ignore */ }
+  if (!lock || now - lock.ts > 4000 || lock.id === myTabId) {
+    try { localStorage.setItem(lockKey, JSON.stringify({ id: myTabId, ts: now })) } catch (e) { /* ignore */ }
+    isLeaderTab = true
+  } else {
+    isLeaderTab = false
+  }
+}
+
+// 把上一段连续计时的时间(按秒取整)写入当天的桶
+const flushStudySegment = () => {
+  const now = Date.now()
+  const elapsed = Math.floor((now - runningSince) / 1000)
+  if (elapsed >= 1) {
+    const d = dateStrOf()
+    studyData.value.days[d] = (studyData.value.days[d] || 0) + elapsed
+  }
+  runningSince = now
+  saveStudyData()
+}
+
+const syncStudyTime = () => {
+  if (!currentUser.value) return
+  const d = dateStrOf()
+  const local = studyData.value.days[d] || 0
+  const delta = local - (syncedSecondsMap[d] || 0)
+  if (delta <= 0) return
+  fetch('/api/study-time', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ date: d, delta })
+  }).then(res => { if (res.ok) syncedSecondsMap[d] = local }).catch(() => {})
+}
+
+const tickStudy = () => {
+  acquireLeaderIfNeeded()
+  const now = Date.now()
+  const shouldCount = isLeaderTab
+    && document.visibilityState === 'visible'
+    && (now - lastActiveTs) < IDLE_MS
+  if (shouldCount) {
+    if (!isStudyActive.value) { isStudyActive.value = true; runningSince = now }
+    flushStudySegment()
+    if (now - lastSyncTs >= SYNC_MS) { lastSyncTs = now; syncStudyTime() }
+  } else if (isStudyActive.value) {
+    flushStudySegment()
+    isStudyActive.value = false
+  }
+}
+
+// 离开页面/切后台时: 落盘 + 用 sendBeacon 把未同步增量发出去
+const flushStudyOnLeave = () => {
+  if (isStudyActive.value) flushStudySegment()
+  else saveStudyData()
+  if (!currentUser.value) return
+  const d = dateStrOf()
+  const delta = (studyData.value.days[d] || 0) - (syncedSecondsMap[d] || 0)
+  if (delta > 0 && navigator.sendBeacon) {
+    try {
+      navigator.sendBeacon('/api/study-time', new Blob([JSON.stringify({ date: d, delta })], { type: 'application/json' }))
+    } catch (e) { /* ignore */ }
+  }
+}
+
+const handleStudyVisibility = () => {
+  if (document.visibilityState === 'hidden') {
+    flushStudyOnLeave()
+    isStudyActive.value = false
+    runningSince = Date.now()
+  } else {
+    markStudyActive()
+  }
+}
+
+const initStudyTracker = () => {
+  loadStudyData()
+  if (currentUser.value) {
+    // 初始化云端同步基线与历史累计
+    fetch('/api/study-time/today').then(r => r.ok ? r.json() : null).then(data => {
+      if (data && data.seconds != null) syncedSecondsMap[data.date] = data.seconds
+    }).catch(() => {})
+    fetch('/api/study-time/total').then(r => r.ok ? r.json() : null).then(data => {
+      if (data && data.totalSeconds != null) cloudTotalSeconds = data.totalSeconds
+    }).catch(() => {})
+  }
+  ACTIVITY_EVENTS.forEach(evt => window.addEventListener(evt, markStudyActive, { passive: true }))
+  document.addEventListener('visibilitychange', handleStudyVisibility)
+  window.addEventListener('pagehide', flushStudyOnLeave)
+  markStudyActive()
+  studyTimer = setInterval(tickStudy, 1000)
+}
+
+const teardownStudyTracker = () => {
+  if (studyTimer) clearInterval(studyTimer)
+  flushStudyOnLeave()
+  ACTIVITY_EVENTS.forEach(evt => window.removeEventListener(evt, markStudyActive))
+  document.removeEventListener('visibilitychange', handleStudyVisibility)
+  window.removeEventListener('pagehide', flushStudyOnLeave)
+}
 
 onMounted(() => {
   applyNightMode(isNightMode.value)
   currentProverb.value = proverbs[Math.floor(Math.random() * proverbs.length)]
 
-  timerInterval = setInterval(() => {
-    studySeconds.value++
-    if (studySeconds.value % 10 === 0) {
-      localStorage.setItem('study_seconds', studySeconds.value)
-    }
-  }, 1000)
+  initStudyTracker()
 })
 
 onUnmounted(() => {
-  if (timerInterval) clearInterval(timerInterval)
+  teardownStudyTracker()
 })
 
 // --- Book Management ---
@@ -487,7 +743,7 @@ const fetchProgressFromDB = async () => {
   if (!currentUser.value) return
   isSyncing.value = true
   try {
-    const res = await fetch(`http://localhost:8081/api/progress/${currentUser.value.id}`)
+    const res = await fetch(`/api/progress/${currentUser.value.id}`)
     if (res.ok) {
       const data = await res.json()
       // We MUST clear local progress first to prevent previous user's progress carrying over to a new user
@@ -507,7 +763,7 @@ const fetchProgressFromDB = async () => {
 const syncProgressToDB = async () => {
   if (!currentUser.value) return
   try {
-    await fetch(`http://localhost:8081/api/progress/${currentUser.value.id}`, {
+    await fetch(`/api/progress/${currentUser.value.id}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(progress)
@@ -530,11 +786,34 @@ watch(progress, (newVal) => {
 
 const loadCurrentBook = async () => {
   const bookId = localStorage.getItem('current_book_id') || 'builtin'
-  if (bookId === 'builtin') {
+  const useBuiltin = () => {
     words.value = [...VOCABULARY_DATA]
     originalWords.value = [...VOCABULARY_DATA]
     currentBookName.value = '大学核心词汇 (系统)'
+  }
+
+  if (bookId === 'builtin') {
+    useBuiltin()
+  } else if (currentUser.value) {
+    // 登录用户: 从后端加载云端词书
+    try {
+      const res = await fetch(`/api/books/${bookId}`)
+      if (res.ok) {
+        const book = await res.json()
+        words.value = (book.words || []).map(w => ({
+          word: w.word, phonetic: w.phonetic, definition: w.definition, unit: w.unit
+        }))
+        originalWords.value = [...words.value]
+        currentBookName.value = book.name
+      } else {
+        useBuiltin()
+      }
+    } catch (err) {
+      console.error('Failed to load cloud book:', err)
+      useBuiltin()
+    }
   } else {
+    // 游客: 本地词书
     const importedBooks = JSON.parse(localStorage.getItem('imported_vocab_books') || '[]')
     const book = importedBooks.find(b => b.id === bookId)
     if (book) {
@@ -542,12 +821,10 @@ const loadCurrentBook = async () => {
       originalWords.value = [...book.words]
       currentBookName.value = book.name
     } else {
-      words.value = [...VOCABULARY_DATA]
-      originalWords.value = [...VOCABULARY_DATA]
-      currentBookName.value = '大学核心词汇 (系统)'
+      useBuiltin()
     }
   }
-  
+
   if (currentUser.value) {
     await fetchProgressFromDB()
   }
@@ -578,19 +855,41 @@ const updateStatus = (wordText, status) => {
   }
 }
 
-const filteredWords = computed(() => {
+const applySearch = (arr) => {
   const query = searchQuery.value.toLowerCase()
-  if (!query) return words.value
-  return words.value.filter(w => 
-    w.word.toLowerCase().includes(query) || 
+  if (!query) return arr
+  return arr.filter(w =>
+    w.word.toLowerCase().includes(query) ||
     w.definition.toLowerCase().includes(query) ||
     w.phonetic.toLowerCase().includes(query)
   )
+}
+
+// 列表视图: 开启"隐熟词"时整体隐藏已标熟单词
+const listWords = computed(() => {
+  let arr = words.value
+  if (hideMasteredWords.value) arr = arr.filter(w => getStatus(w.word) !== 'mastered')
+  return applySearch(arr)
+})
+
+// 卡片视图: 仅当作用范围为"列表+卡片"时隐藏
+const cardWords = computed(() => {
+  let arr = words.value
+  if (hideMasteredWords.value && hideMasteredScope.value === 'both') arr = arr.filter(w => getStatus(w.word) !== 'mastered')
+  return applySearch(arr)
+})
+
+const activeWords = computed(() => viewMode.value === 'card' ? cardWords.value : listWords.value)
+
+const hiddenMasteredCount = computed(() => {
+  if (!hideMasteredWords.value) return 0
+  return words.value.filter(w => getStatus(w.word) === 'mastered').length
 })
 
 const currentWord = computed(() => {
-  if (filteredWords.value.length === 0) return {}
-  return filteredWords.value[currentIndex.value]
+  const arr = activeWords.value
+  if (arr.length === 0) return {}
+  return arr[Math.min(currentIndex.value, arr.length - 1)]
 })
 
 const stats = computed(() => {
@@ -632,21 +931,21 @@ const restoreOrder = () => {
 }
 
 const prevCard = () => {
-  if (filteredWords.value.length === 0) return
+  if (activeWords.value.length === 0) return
   isFlipped.value = false
   slideTransitionName.value = 'slide-right'
   if (currentIndex.value > 0) {
     currentIndex.value--
   } else {
-    currentIndex.value = filteredWords.value.length - 1
+    currentIndex.value = activeWords.value.length - 1
   }
 }
 
 const nextCard = () => {
-  if (filteredWords.value.length === 0) return
+  if (activeWords.value.length === 0) return
   isFlipped.value = false
   slideTransitionName.value = 'slide-left'
-  if (currentIndex.value < filteredWords.value.length - 1) {
+  if (currentIndex.value < activeWords.value.length - 1) {
     currentIndex.value++
   } else {
     currentIndex.value = 0
@@ -654,7 +953,7 @@ const nextCard = () => {
 }
 
 const markCard = (status) => {
-  if (filteredWords.value.length === 0) return
+  if (activeWords.value.length === 0) return
   const word = currentWord.value.word
   updateStatus(word, status)
   
@@ -729,26 +1028,31 @@ const speak = (text) => {
   window.speechSynthesis.speak(utterance)
 }
 
+// 卡片模式键盘快捷键 (空格翻面, 左右切换)
+const handleKeydown = (e) => {
+  if (viewMode.value !== 'card' || document.activeElement.tagName === 'INPUT') return
+  if (e.code === 'Space') {
+    e.preventDefault()
+    isFlipped.value = !isFlipped.value
+  } else if (e.code === 'ArrowLeft') {
+    prevCard()
+  } else if (e.code === 'ArrowRight') {
+    nextCard()
+  }
+}
+
 onMounted(() => {
   loadCurrentBook()
-  
+
   initVoices()
   if (window.speechSynthesis.onvoiceschanged !== undefined) {
     window.speechSynthesis.onvoiceschanged = initVoices
   }
 
-  window.addEventListener('keydown', (e) => {
-    if (viewMode.value !== 'card' || document.activeElement.tagName === 'INPUT') return
-    if (e.code === 'Space') {
-      e.preventDefault()
-      isFlipped.value = !isFlipped.value
-    } else if (e.code === 'ArrowLeft') {
-      prevCard()
-    } else if (e.code === 'ArrowRight') {
-      nextCard()
-    }
-  })
+  window.addEventListener('keydown', handleKeydown)
 })
+
+onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
 
 // --- AI Assistant Logic ---
 const messages = ref([
@@ -778,11 +1082,18 @@ const sendAiMessage = async () => {
   messages.value.push({ role: 'assistant', content: '' })
 
   try {
-    const response = await fetch('http://localhost:8081/api/chat/stream', {
+    const response = await fetch('/api/chat/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: text })
     })
+
+    if (response.status === 401) {
+      messages.value[assistantIdx].content = '登录后即可使用 AI 助教(游客模式不支持),请先注册或登录账号。'
+      isGenerating.value = false
+      scrollToBottom()
+      return
+    }
 
     if (!response.body) throw new Error('No stream available')
 
@@ -819,7 +1130,9 @@ const sendAiMessage = async () => {
     }
   } catch (error) {
     console.error('SSE Error:', error)
-    messages.value[assistantIdx].content = '抱歉，无法连接到后端服务器。请确保 Spring Boot 已启动。'
+    messages.value[assistantIdx].content = error && error.status === 401
+      ? '登录后即可使用 AI 助教(游客模式不支持),请先注册或登录账号。'
+      : '抱歉，无法连接到后端服务器。请确保 Spring Boot 已启动。'
   } finally {
     isGenerating.value = false
     scrollToBottom()

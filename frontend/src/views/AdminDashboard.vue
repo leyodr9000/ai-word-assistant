@@ -38,49 +38,72 @@
           <p class="text-slate-500">查看系统当前的运行状态和访问数据。</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-6 mt-6">
           <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
             <div class="flex items-center gap-3 text-slate-500 mb-4">
-              <i class="fas fa-eye text-indigo-500 bg-indigo-50 p-2 rounded-lg"></i>
-              <span class="font-medium">总访问次数</span>
+              <i class="fas fa-users text-blue-500 bg-blue-50 p-2 rounded-lg"></i>
+              <span class="font-medium">注册用户</span>
             </div>
-            <div class="text-4xl font-bold text-slate-800">{{ stats.visitCount || 0 }}</div>
-            <div class="text-sm text-emerald-500 mt-2 font-medium"><i class="fas fa-arrow-up"></i> +12% 较昨日</div>
-          </div>
-          
-          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
-            <div class="flex items-center gap-3 text-slate-500 mb-4">
-              <i class="fas fa-microchip text-rose-500 bg-rose-50 p-2 rounded-lg"></i>
-              <span class="font-medium">CPU 负载 (模拟)</span>
-            </div>
-            <div class="text-4xl font-bold text-slate-800">{{ stats.cpuLoad || '2.4' }}%</div>
-            <div class="w-full bg-slate-100 rounded-full h-1.5 mt-4">
-              <div class="bg-rose-500 h-1.5 rounded-full" :style="{ width: `${stats.cpuLoad || 2.4}%` }"></div>
-            </div>
+            <div class="text-4xl font-bold text-slate-800">{{ stats.userCount ?? 0 }}</div>
           </div>
 
           <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
             <div class="flex items-center gap-3 text-slate-500 mb-4">
-              <i class="fas fa-memory text-amber-500 bg-amber-50 p-2 rounded-lg"></i>
-              <span class="font-medium">内存占用 (模拟)</span>
+              <i class="fas fa-layer-group text-indigo-500 bg-indigo-50 p-2 rounded-lg"></i>
+              <span class="font-medium">云端词书</span>
             </div>
-            <div class="text-4xl font-bold text-slate-800">{{ stats.memoryUsage || '45' }}%</div>
-            <div class="w-full bg-slate-100 rounded-full h-1.5 mt-4">
-              <div class="bg-amber-500 h-1.5 rounded-full" :style="{ width: `${stats.memoryUsage || 45}%` }"></div>
+            <div class="text-4xl font-bold text-slate-800">{{ stats.bookCount ?? 0 }}</div>
+          </div>
+
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+            <div class="flex items-center gap-3 text-slate-500 mb-4">
+              <i class="fas fa-book text-emerald-500 bg-emerald-50 p-2 rounded-lg"></i>
+              <span class="font-medium">云端单词</span>
             </div>
+            <div class="text-4xl font-bold text-slate-800">{{ stats.cloudWordCount ?? 0 }}</div>
+          </div>
+
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+            <div class="flex items-center gap-3 text-slate-500 mb-4">
+              <i class="fas fa-tasks text-amber-500 bg-amber-50 p-2 rounded-lg"></i>
+              <span class="font-medium">学习进度记录</span>
+            </div>
+            <div class="text-4xl font-bold text-slate-800">{{ stats.progressCount ?? 0 }}</div>
+          </div>
+
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+            <div class="flex items-center gap-3 text-slate-500 mb-4">
+              <i class="fas fa-sign-in-alt text-rose-500 bg-rose-50 p-2 rounded-lg"></i>
+              <span class="font-medium">累计登录</span>
+            </div>
+            <div class="text-4xl font-bold text-slate-800">{{ stats.visitCount ?? 0 }}</div>
+          </div>
+
+          <div @click="currentTab = 'ai-config'" class="bg-white p-6 rounded-2xl border shadow-sm flex flex-col cursor-pointer hover:border-blue-300 transition-colors" :class="stats.aiConfigured ? 'border-slate-200' : 'border-amber-300 bg-amber-50/50'">
+            <div class="flex items-center gap-3 text-slate-500 mb-4">
+              <i class="fas fa-robot text-indigo-500 bg-indigo-50 p-2 rounded-lg"></i>
+              <span class="font-medium">AI 助教状态</span>
+            </div>
+            <div class="text-lg font-bold" :class="stats.aiConfigured ? 'text-emerald-600' : 'text-amber-600'">
+              {{ stats.aiConfigured ? '已配置' : '未配置 API Key' }}
+            </div>
+            <div class="text-xs text-slate-400 mt-1">{{ stats.modelName || '-' }} · 点击前往配置</div>
           </div>
         </div>
-        
+
         <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm mt-6">
-          <h3 class="font-bold text-lg mb-4">近期活动</h3>
-          <div class="flex flex-col gap-4 text-sm text-slate-600">
-            <div class="flex justify-between items-center py-2 border-b border-slate-50">
-              <span class="flex items-center gap-2"><i class="fas fa-circle text-[8px] text-emerald-500"></i> 系统正常启动</span>
-              <span class="text-slate-400">10分钟前</span>
-            </div>
-            <div class="flex justify-between items-center py-2 border-b border-slate-50">
-              <span class="flex items-center gap-2"><i class="fas fa-circle text-[8px] text-blue-500"></i> 用户配置了新模型: DeepSeek</span>
-              <span class="text-slate-400">1小时前</span>
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-lg">最近登录记录</h3>
+            <button @click="loadVisits" class="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"><i class="fas fa-sync-alt"></i> 刷新</button>
+          </div>
+          <div v-if="visits.length === 0" class="text-sm text-slate-400 py-4 text-center">暂无登录记录 (用户登录后自动记录)</div>
+          <div v-else class="flex flex-col text-sm text-slate-600">
+            <div v-for="(v, i) in visits" :key="v.id" class="flex justify-between items-center py-2 border-b border-slate-50 last:border-0">
+              <span class="flex items-center gap-2">
+                <i class="fas fa-circle text-[8px]" :class="i === 0 ? 'text-emerald-500' : 'text-slate-300'"></i>
+                {{ i === 0 ? '最近一次登录' : '登录' }}
+              </span>
+              <span class="text-slate-400">{{ formatTime(v.visitTime) }}</span>
             </div>
           </div>
         </div>
@@ -106,13 +129,14 @@
                   <th scope="col" class="px-6 py-4">ID</th>
                   <th scope="col" class="px-6 py-4">用户名</th>
                   <th scope="col" class="px-6 py-4">角色</th>
+                  <th scope="col" class="px-6 py-4">学习进度</th>
                   <th scope="col" class="px-6 py-4">注册时间</th>
                   <th scope="col" class="px-6 py-4 text-right">操作</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
                 <tr v-if="users.length === 0" class="hover:bg-slate-50/50">
-                  <td colspan="5" class="px-6 py-8 text-center text-slate-400">暂无用户数据</td>
+                  <td colspan="6" class="px-6 py-8 text-center text-slate-400">暂无用户数据</td>
                 </tr>
                 <tr v-for="user in users" :key="user.id" class="hover:bg-slate-50 transition-colors">
                   <td class="px-6 py-4 font-mono">{{ user.id }}</td>
@@ -126,6 +150,9 @@
                     <span :class="['px-2.5 py-1 rounded-full text-xs font-bold border', user.role === 'ADMIN' ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-slate-50 text-slate-600 border-slate-200']">
                       {{ user.role || 'USER' }}
                     </span>
+                  </td>
+                  <td class="px-6 py-4">
+                    <span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-full text-xs font-bold">{{ user.progressCount ?? 0 }} 词</span>
                   </td>
                   <td class="px-6 py-4 text-slate-500">{{ user.createdAt ? new Date(user.createdAt).toLocaleString() : '-' }}</td>
                   <td class="px-6 py-4 text-right">
@@ -196,8 +223,9 @@
                   <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                     <i class="fas fa-key"></i>
                   </div>
-                  <input v-model="config.apiKey" type="password" placeholder="sk-..." class="w-full bg-slate-50 border border-slate-300 text-slate-700 py-3 pl-10 pr-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm shadow-sm inset-shadow-sm">
+                  <input v-model="config.apiKey" type="password" :placeholder="hasSavedKey ? `已保存 ${savedKeyMasked}，留空则不修改` : 'sk-...'" class="w-full bg-slate-50 border border-slate-300 text-slate-700 py-3 pl-10 pr-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm shadow-sm inset-shadow-sm">
                 </div>
+                <p v-if="hasSavedKey" class="text-xs text-slate-400 mt-1.5 ml-1">出于安全考虑，Key 只保存在服务器上，输入新值即可覆盖。</p>
               </div>
               
               <!-- Model Name -->
@@ -260,10 +288,31 @@ import { ref, onMounted } from 'vue'
 const currentTab = ref('dashboard')
 
 const stats = ref({
+  userCount: 0,
+  bookCount: 0,
+  cloudWordCount: 0,
+  progressCount: 0,
   visitCount: 0,
-  cpuLoad: (Math.random() * 5 + 1).toFixed(1),
-  memoryUsage: Math.floor(Math.random() * 30 + 30)
+  aiConfigured: false,
+  modelName: ''
 })
+
+const visits = ref([])
+
+const formatTime = (t) => {
+  if (!t) return '-'
+  const d = new Date(t)
+  return isNaN(d.getTime()) ? t : d.toLocaleString('zh-CN', { hour12: false })
+}
+
+const loadVisits = async () => {
+  try {
+    const res = await fetch('/api/admin/visits')
+    if (res.ok) visits.value = await res.json()
+  } catch (error) {
+    console.error('Failed to load visits:', error)
+  }
+}
 
 const config = ref({
   activeModel: 'DeepSeek',
@@ -282,7 +331,7 @@ const isLoadingUsers = ref(false)
 const loadUsers = async () => {
   isLoadingUsers.value = true
   try {
-    const res = await fetch('http://localhost:8081/api/admin/users')
+    const res = await fetch('/api/admin/users')
     const data = await res.json()
     users.value = data
   } catch (error) {
@@ -298,7 +347,7 @@ const deleteUser = async (id, username) => {
   }
   
   try {
-    const res = await fetch(`http://localhost:8081/api/admin/users/${id}`, {
+    const res = await fetch(`/api/admin/users/${id}`, {
       method: 'DELETE'
     })
     
@@ -321,40 +370,29 @@ const setProvider = (provider, baseUrl, defaultModel) => {
 }
 
 const testConnection = async () => {
-  if (!config.value.apiKey) {
-    testResult.value = { success: false, message: '请先填写 API Key' }
-    return
-  }
   if (!config.value.baseUrl || !config.value.modelName) {
     testResult.value = { success: false, message: 'Base URL 和 模型名称不能为空' }
     return
   }
-  
+
   isTesting.value = true
   testResult.value = null
-  
+
   try {
-    // 构造标准的 OpenAI completions 请求格式
-    const url = config.value.baseUrl.endsWith('/') ? `${config.value.baseUrl}chat/completions` : `${config.value.baseUrl}/chat/completions`
-    
-    const response = await fetch(url, {
+    // 测试请求由后端代理执行: apiKey 留空时使用数据库已保存的 Key, 浏览器接触不到真实 Key
+    const response = await fetch('/api/admin/config/test', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.value.apiKey}`
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: config.value.modelName,
-        messages: [{ role: 'user', content: '测试连通性，请回复OK' }],
-        max_tokens: 10
+        baseUrl: config.value.baseUrl,
+        modelName: config.value.modelName,
+        apiKey: config.value.apiKey
       })
     })
-
-    if (response.ok) {
-      testResult.value = { success: true, message: '连接成功！模型响应正常。' }
-    } else {
-      const errorData = await response.json().catch(() => ({}))
-      testResult.value = { success: false, message: `连接失败: HTTP ${response.status} ${errorData.error?.message || ''}` }
+    const data = await response.json()
+    testResult.value = {
+      success: !!data.success,
+      message: data.message || (data.success ? '连接成功！模型响应正常。' : '连接失败')
     }
   } catch (error) {
     testResult.value = { success: false, message: `请求出错: ${error.message}` }
@@ -367,12 +405,23 @@ const testConnection = async () => {
   }
 }
 
+const savedKeyMasked = ref('')
+const hasSavedKey = ref(false)
+
 const loadConfig = async () => {
   try {
-    const res = await fetch('http://localhost:8081/api/admin/config')
+    const res = await fetch('/api/admin/config')
     const data = await res.json()
     if (data && data.activeModel) {
-      config.value = data
+      savedKeyMasked.value = data.apiKeyMasked || ''
+      hasSavedKey.value = !!data.hasApiKey
+      config.value = {
+        activeModel: data.activeModel,
+        apiKey: '', // 真实 Key 不下发到浏览器, 此字段仅接收用户新输入
+        baseUrl: data.baseUrl || '',
+        modelName: data.modelName || '',
+        temperature: data.temperature ?? 0.7
+      }
     }
   } catch (error) {
     console.error('Failed to load config:', error)
@@ -381,10 +430,10 @@ const loadConfig = async () => {
 
 const loadStats = async () => {
   try {
-    const res = await fetch('http://localhost:8081/api/admin/stats')
+    const res = await fetch('/api/admin/stats')
     const data = await res.json()
     if (data) {
-      stats.value.visitCount = data.visitCount || stats.value.visitCount
+      stats.value = { ...stats.value, ...data }
     }
   } catch (error) {
     console.error('Failed to load stats:', error)
@@ -393,12 +442,13 @@ const loadStats = async () => {
 
 const saveConfig = async () => {
   try {
-    await fetch('http://localhost:8081/api/admin/config', {
+    await fetch('/api/admin/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(config.value)
     })
     alert('配置保存成功！')
+    await loadConfig()
   } catch (error) {
     alert('配置保存失败，请检查后端服务。')
   }
@@ -408,5 +458,6 @@ onMounted(() => {
   loadConfig()
   loadStats()
   loadUsers()
+  loadVisits()
 })
 </script>
