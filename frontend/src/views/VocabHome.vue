@@ -1,5 +1,5 @@
 <template>
-  <div class="h-screen w-full bg-gradient-to-br from-indigo-50/80 via-white to-blue-50/80 dark:from-slate-900/90 dark:via-slate-800/90 dark:to-slate-900/90 p-0 md:p-4 flex gap-4 relative font-sans overflow-hidden transition-all duration-500" :style="customBgStyle">
+  <div class="h-dvh w-full bg-gradient-to-br from-indigo-50/80 via-white to-blue-50/80 dark:from-slate-900/90 dark:via-slate-800/90 dark:to-slate-900/90 p-0 md:p-4 flex gap-3 lg:gap-4 relative font-sans overflow-hidden transition-all duration-500" :style="customBgStyle">
 
     <!-- Dynamic Background Image (Shared with Login) -->
     <div 
@@ -13,7 +13,7 @@
     <main class="flex-1 flex flex-col gap-4 min-w-0 relative z-10 h-full">
       
       <!-- Top Header / Dashboard -->
-      <header class="p-6 grid grid-cols-1 lg:grid-cols-3 items-center gap-6 shrink-0 bg-white/50 dark:bg-slate-800/50 backdrop-blur-xl border border-white/40 dark:border-slate-600/30 rounded-3xl shadow-xl transition-all hover:bg-white/60 dark:hover:bg-slate-700/50 relative z-50">
+      <header class="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 items-center gap-4 md:gap-6 shrink-0 bg-white/50 dark:bg-slate-800/50 backdrop-blur-xl border border-white/40 dark:border-slate-600/30 rounded-3xl shadow-xl transition-all hover:bg-white/60 dark:hover:bg-slate-700/50 relative z-50">
         <!-- Left: Branding & Timer -->
         <div class="flex items-center gap-6 justify-self-start shrink-0">
           <!-- Circular Progress -->
@@ -53,8 +53,8 @@
           </div>
         </div>
 
-        <!-- Middle: User Greeting & Proverb -->
-        <div class="hidden lg:flex flex-col items-center justify-center justify-self-center w-full max-w-md">
+        <!-- Middle: User Greeting & Proverb (仅宽屏显示, 中等宽度下让位给统计) -->
+        <div class="hidden xl:flex flex-col items-center justify-center justify-self-center w-full max-w-md">
           <div class="flex flex-col items-center gap-3 w-full">
             <div class="flex items-center gap-3">
               <span class="text-sm font-black text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-slate-800/60 px-5 py-1.5 rounded-full border border-white/80 dark:border-slate-600/60 shadow-sm backdrop-blur-md flex items-center gap-2 tracking-wide">
@@ -65,7 +65,7 @@
                 <i class="fas fa-sign-out-alt"></i> 退出
               </button>
             </div>
-            <div class="w-full text-center group relative cursor-pointer">
+            <div class="w-full text-center group relative cursor-pointer max-w-full">
               <p class="text-sm text-slate-600 dark:text-slate-300 font-medium italic bg-white/40 dark:bg-slate-800/40 px-6 py-3 rounded-2xl border border-white/50 dark:border-slate-600/40 shadow-sm backdrop-blur-sm line-clamp-2 transition-all hover:bg-white/70 dark:hover:bg-slate-700/60 hover:shadow-md">
                 "{{ currentProverb.en }}"
               </p>
@@ -104,7 +104,7 @@
       </header>
       
       <!-- Controls -->
-      <div class="relative z-20 p-4 flex flex-wrap gap-4 shrink-0 bg-white/50 dark:bg-slate-800/50 backdrop-blur-xl border border-white/40 dark:border-slate-600/30 rounded-2xl shadow-lg items-center transition-all hover:bg-white/60 dark:hover:bg-slate-700/50">
+      <div class="relative z-20 p-3 md:p-4 flex flex-wrap gap-2 md:gap-4 shrink-0 bg-white/50 dark:bg-slate-800/50 backdrop-blur-xl border border-white/40 dark:border-slate-600/30 rounded-2xl shadow-lg items-center transition-all hover:bg-white/60 dark:hover:bg-slate-700/50">
         <!-- Search -->
         <div class="flex-1 min-w-[200px] relative">
           <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"></i>
@@ -184,14 +184,14 @@
           <table class="w-full text-left border-collapse">
             <thead class="sticky top-0 z-10 shadow-sm">
               <tr>
-                <th class="py-3 px-6 font-extrabold tracking-wider text-slate-600 dark:text-slate-300 bg-white/60 dark:bg-slate-800/60 backdrop-blur-2xl border-b border-white/40 dark:border-slate-600/30">单词</th>
-                <th class="py-3 px-6 font-extrabold tracking-wider text-slate-600 dark:text-slate-300 bg-white/60 dark:bg-slate-800/60 backdrop-blur-2xl border-b border-white/40 dark:border-slate-600/30">释义</th>
-                <th class="py-3 px-6 font-extrabold tracking-wider text-right text-slate-600 dark:text-slate-300 bg-white/60 dark:bg-slate-800/60 backdrop-blur-2xl border-b border-white/40 dark:border-slate-600/30">状态控制</th>
+                <th class="py-3 px-3 md:px-6 font-extrabold tracking-wider text-slate-600 dark:text-slate-300 bg-white/60 dark:bg-slate-800/60 backdrop-blur-2xl border-b border-white/40 dark:border-slate-600/30">单词</th>
+                <th class="py-3 px-3 md:px-6 font-extrabold tracking-wider text-slate-600 dark:text-slate-300 bg-white/60 dark:bg-slate-800/60 backdrop-blur-2xl border-b border-white/40 dark:border-slate-600/30">释义</th>
+                <th class="py-3 px-3 md:px-6 font-extrabold tracking-wider text-right text-slate-600 dark:text-slate-300 bg-white/60 dark:bg-slate-800/60 backdrop-blur-2xl border-b border-white/40 dark:border-slate-600/30">状态控制</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="word in listWords" :key="word.word" class="border-b border-slate-200 dark:border-slate-700/50/40 dark:border-slate-700/40 hover:bg-white/60 dark:hover:bg-slate-700/50 transition-colors group">
-                <td class="py-3 px-6 w-1/3">
+                <td class="py-3 px-3 md:px-6 w-1/3">
                   <div class="flex items-center gap-3">
                     <button @click="speak(word.word)" class="w-8 h-8 rounded-full bg-blue-100/80 text-blue-600 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all transform active:scale-90 group-hover:shadow-md shrink-0 border border-blue-200">
                       <i class="fas fa-volume-up text-sm"></i>
@@ -202,14 +202,14 @@
                     </div>
                   </div>
                 </td>
-                <td class="py-3 px-6 w-1/3">
+                <td class="py-3 px-3 md:px-6 w-1/3">
                   <div class="text-slate-700 dark:text-slate-200 font-medium text-base leading-relaxed cursor-pointer" 
                        :class="(hideAllDefinitions || (hideMasteredDefinitions && getStatus(word.word) === 'mastered')) ? 'blur-md hover:blur-none transition-all duration-300 select-none' : ''"
                        title="点击/悬停查看释义">
                     {{ word.definition }}
                   </div>
                 </td>
-                <td class="py-3 px-6 w-1/3">
+                <td class="py-3 px-3 md:px-6 w-1/3">
                   <div class="flex gap-2 justify-end">
                     <button @click="updateStatus(word.word, 'new')" :class="['px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-90', getStatus(word.word) === 'new' ? 'bg-blue-500 text-white shadow-md shadow-blue-500/30 border-none' : 'bg-white/50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 border border-white/50 dark:border-slate-600/40 hover:bg-white dark:bg-slate-800 shadow-sm']">未学</button>
                     <button @click="updateStatus(word.word, 'unfamiliar')" :class="['px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-90', getStatus(word.word) === 'unfamiliar' ? 'bg-orange-500 text-white shadow-md shadow-orange-500/30 border-none' : 'bg-white/50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 border border-white/50 dark:border-slate-600/40 hover:bg-white dark:bg-slate-800 shadow-sm']">陌生</button>
@@ -235,10 +235,10 @@
             </div>
             
             <!-- Prev/Next Navigation outside the card -->
-            <button @click="prevCard" class="absolute top-1/2 -left-12 md:-left-16 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-white text-slate-600 dark:text-slate-300 hover:text-blue-600 hover:bg-white dark:bg-slate-800 flex items-center justify-center shadow-lg transition-all active:scale-90 z-10">
+            <button @click="prevCard" class="absolute top-1/2 left-1 md:-left-14 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-white text-slate-600 dark:text-slate-300 hover:text-blue-600 hover:bg-white dark:bg-slate-800 flex items-center justify-center shadow-lg transition-all active:scale-90 z-10">
               <i class="fas fa-chevron-left"></i>
             </button>
-            <button @click="nextCard" class="absolute top-1/2 -right-12 md:-right-16 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-white text-slate-600 dark:text-slate-300 hover:text-blue-600 hover:bg-white dark:bg-slate-800 flex items-center justify-center shadow-lg transition-all active:scale-90 z-10">
+            <button @click="nextCard" class="absolute top-1/2 right-1 md:-right-14 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-white text-slate-600 dark:text-slate-300 hover:text-blue-600 hover:bg-white dark:bg-slate-800 flex items-center justify-center shadow-lg transition-all active:scale-90 z-10">
               <i class="fas fa-chevron-right"></i>
             </button>
 
@@ -288,7 +288,7 @@
     </main>
 
     <!-- Right: AI Assistant Sidebar -->
-    <aside v-if="showAiPanel" class="w-64 lg:w-72 flex flex-col shrink-0 overflow-hidden relative z-10 bg-white/50 dark:bg-slate-800/50 backdrop-blur-xl border border-white/40 dark:border-slate-600/30 rounded-3xl shadow-xl">
+    <aside v-if="showAiPanel" class="w-72 flex flex-col shrink-0 overflow-hidden relative z-10 max-lg:absolute max-lg:right-3 max-lg:top-3 max-lg:bottom-3 max-lg:z-30 max-lg:shadow-2xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-xl border border-white/40 dark:border-slate-600/30 rounded-3xl shadow-xl">
       <!-- AI Header -->
       <header class="p-4 border-b border-white/40 dark:border-slate-600/30 shrink-0 z-10 bg-gradient-to-r from-blue-100/50 to-indigo-100/50 backdrop-blur-md">
         <div class="flex items-start justify-between">
@@ -439,6 +439,24 @@
 import { ref, reactive, computed, onMounted, nextTick, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { VOCABULARY_DATA } from '../data/words.js'
+import { STANDALONE } from '../config/mode.js'
+
+// --- 单机版: 本机 AI 配置存取 (key 直接内联) ---
+const LOCAL_AI_KEY = 'local_ai_config'
+const getLocalAiConfig = () => {
+  try {
+    const raw = localStorage.getItem(LOCAL_AI_KEY)
+    if (!raw) return null
+    const cfg = JSON.parse(raw)
+    if (!cfg || !cfg.baseUrl || !cfg.apiKey || !cfg.modelName) return null
+    return cfg
+  } catch (e) {
+    return null
+  }
+}
+const saveLocalAiConfig = (cfg) => {
+  localStorage.setItem(LOCAL_AI_KEY, JSON.stringify(cfg))
+}
 
 const router = useRouter()
 
@@ -860,6 +878,9 @@ const teardownStudyTracker = () => {
 onMounted(() => {
   applyNightMode(isNightMode.value)
   currentProverb.value = proverbs[Math.floor(Math.random() * proverbs.length)]
+
+  // 窄屏 (平板竖屏/手机) 默认收起 AI 侧栏, 避免挤压学习区; 需要时点悬浮球以浮层展开
+  if (window.innerWidth < 1024) showAiPanel.value = false
 
   if (STANDALONE) initLocalAiForm()
   initStudyTracker()

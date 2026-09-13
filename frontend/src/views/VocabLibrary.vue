@@ -12,7 +12,7 @@
     <div class="max-w-6xl mx-auto relative z-10 flex flex-col gap-8 pb-20">
       
       <!-- Header -->
-      <header class="flex justify-between items-center bg-white/50 backdrop-blur-xl border border-white/40 rounded-3xl p-6 shadow-xl">
+      <header class="flex flex-wrap justify-between items-center gap-4 bg-white/50 backdrop-blur-xl border border-white/40 rounded-3xl p-4 md:p-6 shadow-xl">
         <div>
           <h1 class="text-3xl font-black tracking-tight text-slate-800 drop-shadow-sm">词书大厅</h1>
           <p class="text-slate-600 mt-2 font-medium">导入专属词汇表，定制您的学习计划</p>
@@ -62,7 +62,7 @@
           <i class="fas fa-layer-group text-amber-500"></i> 我的词书
         </h2>
         
-        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
           
           <!-- Built-in Book -->
           <div class="bg-white/60 backdrop-blur-xl border border-white/50 rounded-3xl p-6 transition-all cursor-pointer shadow-lg relative overflow-hidden group active:scale-95"

@@ -1,35 +1,35 @@
 <template>
-  <div class="flex h-screen w-full bg-slate-50 text-slate-800 font-sans">
-    <!-- Sidebar Navigation -->
-    <aside class="w-64 bg-white border-r border-slate-200 flex flex-col">
-      <div class="p-6 border-b border-slate-100 flex items-center gap-3">
+  <div class="flex flex-col md:flex-row h-screen w-full bg-slate-50 text-slate-800 font-sans">
+    <!-- Sidebar Navigation (窄屏时变为顶部横条) -->
+    <aside class="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-slate-200 flex flex-row md:flex-col items-center md:items-stretch shrink-0">
+      <div class="p-4 md:p-6 border-b md:border-b-0 border-slate-100 flex items-center gap-3 w-full md:w-auto shrink-0">
         <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center">
           <i class="fas fa-shield-alt"></i>
         </div>
         <h1 class="font-bold text-lg tracking-tight">Admin Center</h1>
       </div>
-      
-      <nav class="flex-1 p-4 space-y-2">
-        <a @click="currentTab = 'dashboard'" :class="['flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-colors', currentTab === 'dashboard' ? 'bg-blue-50 text-blue-600 font-medium' : 'hover:bg-slate-50 text-slate-600']">
+
+      <nav class="flex-1 p-2 md:p-4 flex md:block space-x-2 md:space-x-0 md:space-y-2 overflow-x-auto">
+        <a @click="currentTab = 'dashboard'" :class="['flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-colors whitespace-nowrap', currentTab === 'dashboard' ? 'bg-blue-50 text-blue-600 font-medium' : 'hover:bg-slate-50 text-slate-600']">
           <i class="fas fa-chart-pie w-5"></i> 控制面板
         </a>
-        <a @click="currentTab = 'users'" :class="['flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-colors', currentTab === 'users' ? 'bg-blue-50 text-blue-600 font-medium' : 'hover:bg-slate-50 text-slate-600']">
+        <a @click="currentTab = 'users'" :class="['flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-colors whitespace-nowrap', currentTab === 'users' ? 'bg-blue-50 text-blue-600 font-medium' : 'hover:bg-slate-50 text-slate-600']">
           <i class="fas fa-users w-5"></i> 用户管理
         </a>
-        <a @click="currentTab = 'ai-config'" :class="['flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-colors', currentTab === 'ai-config' ? 'bg-blue-50 text-blue-600 font-medium' : 'hover:bg-slate-50 text-slate-600']">
+        <a @click="currentTab = 'ai-config'" :class="['flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-colors whitespace-nowrap', currentTab === 'ai-config' ? 'bg-blue-50 text-blue-600 font-medium' : 'hover:bg-slate-50 text-slate-600']">
           <i class="fas fa-robot w-5"></i> AI 模型配置
         </a>
       </nav>
 
-      <div class="p-4 border-t border-slate-100">
-        <router-link to="/" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors">
+      <div class="p-2 md:p-4 border-t border-slate-100 shrink-0">
+        <router-link to="/" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 text-slate-600 transition-colors whitespace-nowrap">
           <i class="fas fa-sign-out-alt w-5"></i> 返回前台
         </router-link>
       </div>
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 overflow-y-auto p-8">
+    <main class="flex-1 overflow-y-auto p-4 md:p-8 min-w-0">
       
       <!-- Tab: Dashboard -->
       <div v-if="currentTab === 'dashboard'" class="max-w-5xl mx-auto space-y-6">
