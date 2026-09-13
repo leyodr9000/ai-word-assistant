@@ -1,13 +1,11 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
-// base 可用环境变量覆盖:
-//   VITE_BASE=./            → 本地 file:// / Capacitor 打包
-//   VITE_BASE=/ai-word-assistant/ → GitHub Pages 子路径部署
-const base = process.env.VITE_BASE || '/'
-
-export default defineConfig({
-  base,
+// base 策略:
+//   --mode standalone  → './'   (单机版: 本地 file:// / Capacitor APK, 资源相对引用)
+//   默认               → '/'    (服务端版: 部署在域名根路径)
+export default defineConfig(({ mode }) => ({
+  base: mode === 'standalone' ? './' : '/',
   plugins: [vue()],
   server: {
     proxy: {
@@ -19,4 +17,4 @@ export default defineConfig({
       },
     },
   },
-})
+}))

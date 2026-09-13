@@ -7,26 +7,3 @@
  * 服务端版(默认)行为完全不变。
  */
 export const STANDALONE = import.meta.env.VITE_STANDALONE === '1'
-
-/** 单机版本地 AI 配置的存取 */
-const AI_CONFIG_KEY = 'local_ai_config'
-
-export function getLocalAiConfig() {
-  try {
-    const raw = localStorage.getItem(AI_CONFIG_KEY)
-    if (!raw) return null
-    const cfg = JSON.parse(raw)
-    if (!cfg || !cfg.baseUrl || !cfg.apiKey || !cfg.modelName) return null
-    return cfg
-  } catch (e) {
-    return null
-  }
-}
-
-export function hasLocalAiConfig() {
-  return getLocalAiConfig() !== null
-}
-
-export function saveLocalAiConfig(cfg) {
-  localStorage.setItem(AI_CONFIG_KEY, JSON.stringify(cfg))
-}
