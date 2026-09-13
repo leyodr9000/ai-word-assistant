@@ -1,0 +1,11 @@
+{
+  "appId": "com.leyodr.wordassistant",
+  "appName": "单词伴学",
+  "webDir": "dist-standalone",
+  "android": {
+    "allowMixedContent": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

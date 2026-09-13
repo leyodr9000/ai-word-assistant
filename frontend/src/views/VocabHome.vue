@@ -59,9 +59,9 @@
             <div class="flex items-center gap-3">
               <span class="text-sm font-black text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-slate-800/60 px-5 py-1.5 rounded-full border border-white/80 dark:border-slate-600/60 shadow-sm backdrop-blur-md flex items-center gap-2 tracking-wide">
                 <i class="fas fa-user-circle text-blue-500 text-lg"></i> 
-                Hi, {{ currentUser?.username || '游客' }}
+                Hi, {{ currentUser?.username || (STANDALONE ? '本机模式' : '游客') }}
               </span>
-              <button @click="handleLogout" class="text-xs font-bold text-red-500 bg-white/60 dark:bg-slate-800/60 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-full border border-red-200/50 shadow-sm backdrop-blur-md flex items-center gap-1.5 transition-all active:scale-95">
+              <button v-if="!STANDALONE" @click="handleLogout" class="text-xs font-bold text-red-500 bg-white/60 dark:bg-slate-800/60 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-full border border-red-200/50 shadow-sm backdrop-blur-md flex items-center gap-1.5 transition-all active:scale-95">
                 <i class="fas fa-sign-out-alt"></i> 退出
               </button>
             </div>
@@ -94,7 +94,7 @@
             <span class="font-black text-blue-600 dark:text-blue-500 text-xl">{{ stats.new }}</span>
           </div>
           <div class="h-8 w-px bg-slate-300 dark:bg-slate-600 mx-2"></div>
-          <router-link v-if="currentUser?.role === 'ADMIN'" to="/admin" class="w-10 h-10 rounded-full bg-slate-800/10 dark:bg-slate-800/50 hover:bg-slate-800/20 dark:hover:bg-slate-700/80 text-slate-600 dark:text-slate-200 flex items-center justify-center transition-all active:scale-95 shadow-sm backdrop-blur-md shrink-0" title="后台管理">
+          <router-link v-if="currentUser?.role === 'ADMIN' && !STANDALONE" to="/admin" class="w-10 h-10 rounded-full bg-slate-800/10 dark:bg-slate-800/50 hover:bg-slate-800/20 dark:hover:bg-slate-700/80 text-slate-600 dark:text-slate-200 flex items-center justify-center transition-all active:scale-95 shadow-sm backdrop-blur-md shrink-0" title="后台管理">
             <i class="fas fa-cog text-lg"></i>
           </router-link>
           <button @click="showSettings = true" class="w-10 h-10 rounded-full bg-slate-800/10 dark:bg-slate-800/50 hover:bg-slate-800/20 dark:hover:bg-slate-700/80 text-slate-600 dark:text-slate-200 flex items-center justify-center transition-all active:scale-95 shadow-sm backdrop-blur-md shrink-0" title="个性化设置">
@@ -338,10 +338,22 @@
       </div>
     </aside>
 
-    <!-- 展开收起的 AI 助手 (悬浮按钮) -->
-    <button v-if="!showAiPanel" @click="showAiPanel = true" class="absolute top-1/2 right-3 -translate-y-1/2 z-40 w-12 h-12 rounded-full bg-blue-600/90 hover:bg-blue-500 text-white shadow-xl flex items-center justify-center transition-all active:scale-90 backdrop-blur-md border border-blue-400/50" title="展开 AI 助手">
-      <i class="fas fa-robot"></i>
-    </button>
+    <!-- 展开收起的 AI 助手 (可拖动悬浮球, 松手贴边半隐藏, 点击展开) -->
+    <div
+      v-if="!showAiPanel"
+      class="fixed z-40 touch-none select-none"
+      :style="fabStyle"
+      @pointerdown="fabPointerDown"
+      @pointermove="fabPointerMove"
+      @pointerup="fabPointerUp"
+      @pointercancel="fabPointerUp"
+      @mouseenter="fabHover = true"
+      @mouseleave="fabHover = false"
+    >
+      <button class="w-12 h-12 rounded-full bg-blue-600/90 hover:bg-blue-500 text-white shadow-xl flex items-center justify-center backdrop-blur-md border border-blue-400/50 transition-transform active:scale-90" title="展开 AI 助手 (可拖动到屏幕任意边缘)">
+        <i class="fas fa-robot"></i>
+      </button>
+    </div>
 
     <!-- Settings Modal -->
     <div v-if="showSettings" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm transition-all" @click.self="showSettings = false">
@@ -401,6 +413,20 @@
               </button>
             </template>
             <p v-else class="text-xs text-slate-400">游客模式没有账号,注册登录后即可修改密码</p>
+          </div>
+
+          <!-- AI 助教配置 (仅单机版) -->
+          <div v-if="STANDALONE" class="p-3 bg-slate-50/50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-700/50">
+            <div class="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2 mb-2">
+              <i class="fas fa-robot text-blue-500"></i> AI 助教配置
+            </div>
+            <input v-model="localAiForm.baseUrl" type="text" placeholder="接口地址, 如 https://api.deepseek.com" class="w-full mb-2 bg-white/70 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 px-3 py-2 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none transition-all text-sm">
+            <input v-model="localAiForm.apiKey" type="password" placeholder="API Key (sk-...)" class="w-full mb-2 bg-white/70 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 px-3 py-2 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none transition-all text-sm">
+            <input v-model="localAiForm.modelName" type="text" placeholder="模型名称, 如 deepseek-chat" class="w-full mb-2 bg-white/70 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 px-3 py-2 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none transition-all text-sm">
+            <button @click="saveLocalAiSettings" class="w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition-all active:scale-95">
+              保存 AI 配置
+            </button>
+            <p class="text-xs text-slate-400 mt-1.5">配置保存在本机。使用需要网络, 且接口服务商需允许浏览器直接调用。</p>
           </div>
         </div>
       </div>
@@ -498,6 +524,117 @@ watch(hideMasteredScope, v => localStorage.setItem('hide_mastered_scope', v))
 // AI 侧栏显示/收起 (记忆用户偏好)
 const showAiPanel = ref(localStorage.getItem('ai_panel_visible') !== 'false')
 watch(showAiPanel, v => localStorage.setItem('ai_panel_visible', String(v)))
+
+// --- AI 悬浮球: 可拖动, 松手贴边半隐藏, 点击展开 ---
+const FAB_SIZE = 48
+const FAB_KEY = 'ai_fab_pos_v1'
+const fabHover = ref(false)
+const fabDragging = ref(false)
+const fab = reactive({
+  x: window.innerWidth - FAB_SIZE / 2 - 12,   // 圆心偏左上角的定位坐标 (可为负 → 半隐藏)
+  y: window.innerHeight / 2 - FAB_SIZE / 2,
+  side: 'right'
+})
+let fabStart = { px: 0, py: 0, x: 0, y: 0, moved: false }
+
+const fabStyle = computed(() => {
+  // 贴边时悬停/触摸把球完全滑出来, 其余时候保持半隐藏
+  const peekX = fabHover.value
+    ? (fab.side === 'left' ? FAB_SIZE * 0.45 : -FAB_SIZE * 0.45)
+    : 0
+  return {
+    left: fab.x + 'px',
+    top: fab.y + 'px',
+    width: FAB_SIZE + 'px',
+    height: FAB_SIZE + 'px',
+    transform: `translateX(${peekX}px)`,
+    transition: fabDragging.value ? 'none' : 'transform 0.2s ease, left 0.25s ease'
+  }
+})
+
+const loadFabPos = () => {
+  const w = window.innerWidth
+  const h = window.innerHeight
+  let saved = null
+  try { saved = JSON.parse(localStorage.getItem(FAB_KEY) || 'null') } catch (e) { /* ignore */ }
+  fab.side = saved?.side === 'left' ? 'left' : 'right'
+  const ry = typeof saved?.ry === 'number' ? saved.ry : 0.5
+  fab.x = fab.side === 'left' ? -FAB_SIZE / 2 : w - FAB_SIZE / 2
+  fab.y = Math.min(Math.max(ry * (h - FAB_SIZE), 12), h - FAB_SIZE - 12)
+}
+
+const snapFabToEdge = () => {
+  const w = window.innerWidth
+  const h = window.innerHeight
+  const centerX = fab.x + FAB_SIZE / 2
+  fab.side = centerX < w / 2 ? 'left' : 'right'
+  fab.x = fab.side === 'left' ? -FAB_SIZE / 2 : w - FAB_SIZE / 2
+  fab.y = Math.min(Math.max(fab.y, 12), h - FAB_SIZE - 12)
+  try {
+    localStorage.setItem(FAB_KEY, JSON.stringify({ side: fab.side, ry: (fab.y - 12) / Math.max(1, h - FAB_SIZE - 24) }))
+  } catch (e) { /* ignore */ }
+}
+
+const fabPointerDown = (e) => {
+  fabStart = { px: e.clientX, py: e.clientY, x: fab.x, y: fab.y, moved: false }
+  fabDragging.value = true
+  e.currentTarget.setPointerCapture?.(e.pointerId)
+}
+
+const fabPointerMove = (e) => {
+  if (!fabDragging.value) return
+  const dx = e.clientX - fabStart.px
+  const dy = e.clientY - fabStart.py
+  if (!fabStart.moved && Math.hypot(dx, dy) < 5) return
+  fabStart.moved = true
+  const w = window.innerWidth
+  const h = window.innerHeight
+  // 拖动范围: 最多探出 60%, 至少留 40% 可见
+  fab.x = Math.min(Math.max(fabStart.x + dx, -FAB_SIZE * 0.6), w - FAB_SIZE * 0.4)
+  fab.y = Math.min(Math.max(fabStart.y + dy, 8), h - FAB_SIZE - 8)
+}
+
+const fabPointerUp = () => {
+  if (!fabDragging.value) return
+  fabDragging.value = false
+  if (!fabStart.moved) {
+    // 视为点击 → 展开 AI 助手
+    showAiPanel.value = true
+    return
+  }
+  snapFabToEdge()
+}
+
+watch(showAiPanel, v => {
+  if (!v) nextTick(loadFabPos)
+})
+window.addEventListener('resize', () => {
+  if (!showAiPanel.value) snapFabToEdge()
+})
+
+// --- 单机版: 本机 AI 配置 ---
+const localAiForm = reactive({ baseUrl: '', apiKey: '', modelName: '' })
+const initLocalAiForm = () => {
+  const cfg = getLocalAiConfig()
+  if (cfg) {
+    localAiForm.baseUrl = cfg.baseUrl
+    localAiForm.modelName = cfg.modelName
+  }
+}
+const saveLocalAiSettings = () => {
+  if (!localAiForm.baseUrl.trim() || !localAiForm.apiKey.trim() || !localAiForm.modelName.trim()) {
+    alert('接口地址、API Key 和模型名称都要填')
+    return
+  }
+  saveLocalAiConfig({
+    baseUrl: localAiForm.baseUrl.trim().replace(/\/+$/, ''),
+    apiKey: localAiForm.apiKey.trim(),
+    modelName: localAiForm.modelName.trim()
+  })
+  alert('AI 配置已保存到本机')
+  messages.value.push({ role: 'assistant', content: 'AI 配置已保存,现在可以直接向我提问了!' })
+  scrollToBottom()
+}
 
 // --- 修改密码 ---
 const pwdForm = reactive({ oldPassword: '', newPassword: '', confirmPassword: '' })
@@ -724,6 +861,7 @@ onMounted(() => {
   applyNightMode(isNightMode.value)
   currentProverb.value = proverbs[Math.floor(Math.random() * proverbs.length)]
 
+  if (STANDALONE) initLocalAiForm()
   initStudyTracker()
 })
 
@@ -1049,10 +1187,21 @@ onMounted(() => {
     window.speechSynthesis.onvoiceschanged = initVoices
   }
 
+  // 悬浮球初始位置 (收起状态时)
+  if (!showAiPanel.value) loadFabPos()
+
   window.addEventListener('keydown', handleKeydown)
+  window.addEventListener('resize', handleWindowResize)
 })
 
-onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
+const handleWindowResize = () => {
+  if (!showAiPanel.value) snapFabToEdge()
+}
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
+  window.removeEventListener('resize', handleWindowResize)
+})
 
 // --- AI Assistant Logic ---
 const messages = ref([
@@ -1069,6 +1218,40 @@ const scrollToBottom = async () => {
   }
 }
 
+// 解析 SSE 流 (服务端代理与单机直连共用)
+const readSseStream = async (response, assistantIdx) => {
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder('utf-8')
+  let buffer = ''
+
+  while (true) {
+    const { value, done } = await reader.read()
+    if (done) break
+
+    buffer += decoder.decode(value, { stream: true })
+
+    const lines = buffer.split('\n')
+    // The last element might be an incomplete line, so keep it in the buffer
+    buffer = lines.pop() || ''
+
+    for (const line of lines) {
+      if (line.startsWith('data:')) {
+        const data = line.slice(5).trim()
+        if (data === '[DONE]') break
+        if (data) {
+          try {
+            const parsedData = JSON.parse(data)
+            messages.value[assistantIdx].content += parsedData
+          } catch (e) {
+            messages.value[assistantIdx].content += data
+          }
+          scrollToBottom()
+        }
+      }
+    }
+  }
+}
+
 const sendAiMessage = async () => {
   const text = aiInput.value.trim()
   if (!text || isGenerating.value) return
@@ -1080,6 +1263,56 @@ const sendAiMessage = async () => {
 
   const assistantIdx = messages.value.length
   messages.value.push({ role: 'assistant', content: '' })
+
+  // 单机版: 浏览器直连大模型接口 (Key 存本机)
+  if (STANDALONE) {
+    const cfg = getLocalAiConfig()
+    if (!cfg) {
+      messages.value[assistantIdx].content = '还没有配置 AI 接口。点右上角 ⚙ 打开设置,在「AI 助教配置」里填入接口地址、API Key 和模型名称即可使用。'
+      isGenerating.value = false
+      scrollToBottom()
+      return
+    }
+    try {
+      let endpoint = cfg.baseUrl
+      if (!endpoint.endsWith('/chat/completions')) {
+        endpoint = endpoint.endsWith('/') ? endpoint + 'chat/completions' : endpoint + '/chat/completions'
+      }
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${cfg.apiKey}`
+        },
+        body: JSON.stringify({
+          model: cfg.modelName,
+          messages: [
+            { role: 'system', content: '你是一个专业的英语助教。请用生动有趣的中文回答学生的问题，并提供相应的英文例句。' },
+            { role: 'user', content: text }
+          ],
+          stream: true
+        })
+      })
+      if (!response.ok) {
+        const errText = await response.text().catch(() => '')
+        let detail = ''
+        try { detail = JSON.parse(errText)?.error?.message || '' } catch (e) { /* ignore */ }
+        messages.value[assistantIdx].content = `接口返回错误 (HTTP ${response.status})${detail ? ': ' + detail : ''}`
+        isGenerating.value = false
+        scrollToBottom()
+        return
+      }
+      if (!response.body) throw new Error('No stream available')
+      await readSseStream(response, assistantIdx)
+    } catch (error) {
+      console.error('AI Error:', error)
+      messages.value[assistantIdx].content = '连接 AI 接口失败: ' + (error.message || '未知错误')
+        + '。请检查网络、接口地址是否正确, 以及该服务是否允许浏览器直接调用 (CORS)。'
+      isGenerating.value = false
+      scrollToBottom()
+    }
+    return
+  }
 
   try {
     const response = await fetch('/api/chat/stream', {
@@ -1097,37 +1330,7 @@ const sendAiMessage = async () => {
 
     if (!response.body) throw new Error('No stream available')
 
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder('utf-8')
-    let buffer = ''
-
-    while (true) {
-      const { value, done } = await reader.read()
-      if (done) break
-
-      buffer += decoder.decode(value, { stream: true })
-      
-      const lines = buffer.split('\n')
-      // The last element might be an incomplete line, so keep it in the buffer
-      buffer = lines.pop() || ''
-
-      for (const line of lines) {
-        if (line.startsWith('data:')) {
-          const data = line.slice(5).trim()
-          if (data === '[DONE]') break
-          // Handle multiline SSE or specific data formats if needed
-          if (data) {
-             try {
-               const parsedData = JSON.parse(data)
-               messages.value[assistantIdx].content += parsedData
-             } catch(e) {
-               messages.value[assistantIdx].content += data
-             }
-             scrollToBottom()
-          }
-        }
-      }
-    }
+    await readSseStream(response, assistantIdx)
   } catch (error) {
     console.error('SSE Error:', error)
     messages.value[assistantIdx].content = error && error.status === 401
