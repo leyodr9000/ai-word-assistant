@@ -31,3 +31,10 @@ frontend/,
 Thumbs.db
 .DS_Store
 Desktop.ini
+
+# ---- Capacitor 安卓工程与单机构建产物 ----
+frontend/dist-standalone/
+frontend/android/app/build/
+frontend/android/.gradle/
+frontend/android/local.properties
+frontend/android/capacitor-cordova-android-plugins/build/

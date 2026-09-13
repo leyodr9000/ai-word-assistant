@@ -116,6 +116,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { STANDALONE } from '../config/mode.js'
 
 const router = useRouter()
 const isLogin = ref(true)
@@ -192,6 +193,11 @@ const handleGuestLogin = () => {
 
 // Redirect if already logged in
 onMounted(() => {
+  // 单机版不需要登录, 直接进入学习页
+  if (STANDALONE) {
+    router.replace('/home')
+    return
+  }
   const userJson = localStorage.getItem('current_user')
   if (userJson) {
     try {
