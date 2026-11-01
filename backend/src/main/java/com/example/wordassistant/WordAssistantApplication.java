@@ -23,22 +23,38 @@ public class WordAssistantApplication {
     }
 
     /**
-     * 启动时内置默认管理员账号 (仅当 admin 不存在时创建):
-     * 用户名 admin, 初始密码 CHANGE_ME_INITIAL_PASSWORD, 登录后可在右上角设置中修改密码。
-     * 同时拦截了注册 admin 用户名的通道, 防止被他人抢注。
+     * 启动时创建管理员账号 admin (仅当 admin 不存在时)。
+     * 初始口令取环境变量 ADMIN_INITIAL_PASSWORD；未设置时随机生成一个，只在本次启动日志里打印一次。
+     * 登录后可在右上角设置中修改。注册接口拦截了 admin 用户名, 防止被他人抢注。
      */
     @Bean
     public CommandLineRunner seedDefaultAdminRunner(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder) {
         return args -> {
             if (userRepository.findByUsername("admin").isEmpty()) {
+                String initial = System.getenv("ADMIN_INITIAL_PASSWORD");
+                boolean generated = initial == null || initial.isBlank();
+                if (generated) initial = randomPassword(16);
                 User admin = new User();
                 admin.setUsername("admin");
-                admin.setPassword(passwordEncoder.encode("CHANGE_ME_INITIAL_PASSWORD"));
+                admin.setPassword(passwordEncoder.encode(initial));
                 admin.setRole("ADMIN");
                 userRepository.save(admin);
-                System.out.println(">>> [初始化] 已创建默认管理员账号: admin / CHANGE_ME_INITIAL_PASSWORD (请登录后在设置中修改密码)");
+                if (generated) {
+                    System.out.println(">>> [初始化] 已创建管理员账号 admin，随机初始口令: " + initial
+                            + "（只显示这一次，请登录后在设置中修改）");
+                } else {
+                    System.out.println(">>> [初始化] 已创建管理员账号 admin，初始口令取自环境变量 ADMIN_INITIAL_PASSWORD");
+                }
             }
         };
+    }
+
+    private static String randomPassword(int len) {
+        final String chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+        java.security.SecureRandom r = new java.security.SecureRandom();
+        StringBuilder b = new StringBuilder(len);
+        for (int i = 0; i < len; i++) b.append(chars.charAt(r.nextInt(chars.length())));
+        return b.toString();
     }
 
     @Bean

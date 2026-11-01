@@ -105,7 +105,7 @@
       </button>
 
       <p class="text-center text-white/40 text-xs mt-4 leading-relaxed">
-        系统内置管理员账号 <span class="text-white/70 font-bold">admin / CHANGE_ME_INITIAL_PASSWORD</span><br>
+        管理员账号 <span class="text-white/70 font-bold">admin</span>，初始口令见后端首次启动日志<br>
         登录后可在右上角 ⚙ 设置中修改密码
       </p>
 
